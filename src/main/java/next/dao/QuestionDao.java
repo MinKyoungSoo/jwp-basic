@@ -10,6 +10,7 @@ import java.util.List;
 import core.jdbc.JdbcTemplate;
 import core.jdbc.KeyHolder;
 import core.jdbc.PreparedStatementCreator;
+import core.jdbc.PreparedStatementSetter;
 import core.jdbc.RowMapper;
 import next.model.Question;
 
@@ -67,5 +68,11 @@ public class QuestionDao {
         };
 
         return jdbcTemplate.queryForObject(sql, rm, questionId);
+    }
+
+    public void updateCountOfComment(Long questionId, int countOfAnswer) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate();
+        String sql = "UPDATE QUESTIONS SET countOfAnswer = ? WHERE questionId = ?";
+        jdbcTemplate.update(sql, countOfAnswer, questionId);
     }
 }
