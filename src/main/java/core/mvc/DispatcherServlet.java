@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import core.nmvc.AnnotationHandlerMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,12 +17,19 @@ public class DispatcherServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(DispatcherServlet.class);
 
-    private RequestMapping rm;
+    private LegacyRequestMapping lrm;
+    private AnnotationHandlerMapping ahm;
 
     @Override
     public void init() throws ServletException {
-        rm = new RequestMapping();
-        rm.initMapping();
+        lrm = new LegacyRequestMapping();
+        lrm.initMapping();
+        ahm = new AnnotationHandlerMapping("next.controller");
+        try {
+            ahm.initialize();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -29,15 +37,25 @@ public class DispatcherServlet extends HttpServlet {
         String requestUri = req.getRequestURI();
         logger.debug("Method : {}, Request URI : {}", req.getMethod(), requestUri);
 
-        Controller controller = rm.findController(req.getRequestURI());
-        ModelAndView mav;
+        Controller controller = lrm.findController(req.getRequestURI());
+        
         try {
-            mav = controller.execute(req, resp);
-            View view = mav.getView();
-            view.render(mav.getModel(), req, resp);
-        } catch (Throwable e) {
-            logger.error("Exception : {}", e);
-            throw new ServletException(e.getMessage());
+            if (controller != null) {
+                render(controller.execute(req, resp), req, resp);
+            } else {
+                render(ahm.getHandler(req).handle(req, resp), req, resp);
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void render(ModelAndView modelAndView, HttpServletRequest req, HttpServletResponse resp) {
+        try {
+            View view = modelAndView.getView();
+            view.render(modelAndView.getModel(), req, resp);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
